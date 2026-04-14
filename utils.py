@@ -20,10 +20,22 @@ def extract_text_from_pdf(pdf_path):
         print(f"PDF okuma hatası: {e}")
         return ""
 
+_embeddings_cache = None
+
+def get_embeddings():
+    """Embedding modelini cache'ler ve dondurur."""
+    global _embeddings_cache
+    if _embeddings_cache is None:
+        api_key = os.getenv("GOOGLE_API_KEY")
+        _embeddings_cache = GoogleGenerativeAIEmbeddings(
+            model="models/gemini-embedding-001", 
+            google_api_key=api_key
+        )
+    return _embeddings_cache
+
 def setup_rag_database(corpus_path, chroma_path):
     """PDF'leri tarar ve ChromaDB vektör veritabanını oluşturur."""
-    api_key = os.getenv("GOOGLE_API_KEY")
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=api_key)
+    embeddings = get_embeddings()
     
     documents = []
     for file in os.listdir(corpus_path):
@@ -49,8 +61,7 @@ def setup_rag_database(corpus_path, chroma_path):
 
 def get_retriever():
     """Vektör veritabanından bir retriever döndürür."""
-    api_key = os.getenv("GOOGLE_API_KEY")
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=api_key)
+    embeddings = get_embeddings()
     chroma_path = os.getenv("CHROMA_PATH", "data/chroma")
     if not os.path.exists(chroma_path):
         return None

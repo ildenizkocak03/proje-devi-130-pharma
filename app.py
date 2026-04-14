@@ -136,27 +136,14 @@ def main():
         st.markdown('</div>', unsafe_allow_html=True)
 
 def process_analysis(user_input, image_data):
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-
-    steps = [
-        ("Vision-Scanner: Görsel analiz ediliyor...", 20),
-        ("RAG-Specialist: Prospektüs sorgulanıyor...", 50),
-        ("Safety-Auditor: Riskler denetleniyor...", 80),
-        ("Master Orchestrator: Rapor sentezleniyor...", 100)
-    ]
-
-    for msg, prog in steps:
-        status_text.text(msg)
-        progress_bar.progress(prog)
-        time.sleep(1) # Simülasyon görseli için
-
-    try:
-        report = run_full_analysis(user_input, image_data)
-        st.session_state.final_report = report
-        st.toast("Analiz Tamamlandı!", icon="✅")
-    except Exception as e:
-        st.error(f"Sistem Hatası: {e}")
+    with st.spinner("⏳ Analiz yürütülüyor, lütfen bekleyin..."):
+        try:
+            report = run_full_analysis(user_input, image_data)
+            st.session_state.final_report = report
+            st.toast("Analiz Tamamlandı!", icon="✅")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Sistem Hatası: {e}")
 
 if __name__ == "__main__":
     main()

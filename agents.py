@@ -93,22 +93,31 @@ class PharmaGuardAgents:
 
         last_error = None
         for model in models_to_try:
-            for attempt in range(3): # Her model için 3 deneme
+            for attempt in range(3):
                 try:
                     response = model.invoke(messages)
-                    return response.content
+                    # response.content bazen list of dicts döndürür — düz metni çıkar
+                    content = response.content
+                    if isinstance(content, list):
+                        parts = []
+                        for block in content:
+                            if isinstance(block, dict) and 'text' in block:
+                                parts.append(block['text'])
+                            elif isinstance(block, str):
+                                parts.append(block)
+                        content = "\n".join(parts)
+                    return str(content)
                 except Exception as e:
                     last_error = e
                     if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
                         import time
-                        time.sleep(2 * (attempt + 1)) # Üstel bekleme
+                        time.sleep(2 * (attempt + 1))
                         continue
                     else:
-                        break # Diğer hatalarda döngüden çık
-            # Eğer buraya geldiyse bu model başarısız olmuştur, bir sonraki modele (yedek) geçilir.
-            print(f"Model {model.model} başarısız oldu, yedek modele geçiliyor...")
+                        break
+            print(f"Sonraki yedek modele geçiliyor...")
         
-        raise Exception(f"Tüm modeller kota veya sistem hatası verdi. Son hata: {last_error}")
+        raise Exception(f"Tüm modeller başarısız oldu. Son hata: {last_error}")
 
 def run_full_analysis(input_text, image_base64=None):
     agents = PharmaGuardAgents()
