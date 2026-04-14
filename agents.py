@@ -88,7 +88,8 @@ class PharmaGuardAgents:
         # Retry ve Fallback Mantığı
         models_to_try = [
             self.gemini, # İlk deneme: Gemini 2.0 Flash
-            ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0) # Yedek: 1.5 Flash
+            ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0), # Yedek 1
+            ChatGoogleGenerativeAI(model="gemini-pro-latest", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0)   # Yedek 2
         ]
 
         last_error = None
