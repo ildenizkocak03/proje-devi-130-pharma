@@ -10,15 +10,35 @@ load_dotenv()
 
 class PharmaGuardAgents:
     def __init__(self):
+        # API anahtarlarını kontrol et
+        google_api_key = os.getenv("GOOGLE_API_KEY")
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        
+        if not google_api_key:
+            raise ValueError("GOOGLE_API_KEY bulunamadı! Lütfen .env dosyasını kontrol edin veya sidebar üzerinden anahtarı girin.")
+        if not groq_api_key:
+            raise ValueError("GROQ_API_KEY bulunamadı! Lütfen .env dosyasını kontrol edin veya sidebar üzerinden anahtarı girin.")
+
         # Master Orchestrator: Gemini 2.0 Flash
-        self.gemini = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
+        self.gemini = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash", 
+            google_api_key=google_api_key,
+            temperature=0
+        )
         
         # Fast Analysis & Synthesis: Groq Llama-3
-        self.groq_llama = ChatGroq(model="llama3-70b-8192", temperature=0)
+        self.groq_llama = ChatGroq(
+            model="llama3-70b-8192", 
+            groq_api_key=groq_api_key,
+            temperature=0
+        )
         
-        # Vision Scanner: Groq LLaVA (if available) or Gemini Multimodal as backup
-        # Currently Groq has llava-v1.5-7b-4096-preview
-        self.groq_vision = ChatGroq(model="llava-v1.5-7b-4096-preview", temperature=0)
+        # Vision Scanner: Groq LLaVA
+        self.groq_vision = ChatGroq(
+            model="llava-v1.5-7b-4096-preview", 
+            groq_api_key=groq_api_key,
+            temperature=0
+        )
 
     def vision_scanner(self, image_bytes):
         """İlaç kutusunu tarar ve metadata çıkarır."""

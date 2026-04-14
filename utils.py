@@ -22,7 +22,8 @@ def extract_text_from_pdf(pdf_path):
 
 def setup_rag_database(corpus_path, chroma_path):
     """PDF'leri tarar ve ChromaDB vektör veritabanını oluşturur."""
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    api_key = os.getenv("GOOGLE_API_KEY")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
     
     documents = []
     for file in os.listdir(corpus_path):
@@ -48,7 +49,8 @@ def setup_rag_database(corpus_path, chroma_path):
 
 def get_retriever():
     """Vektör veritabanından bir retriever döndürür."""
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    api_key = os.getenv("GOOGLE_API_KEY")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
     chroma_path = os.getenv("CHROMA_PATH", "data/chroma")
     if not os.path.exists(chroma_path):
         return None

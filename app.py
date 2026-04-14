@@ -14,6 +14,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Streamlit Secrets (Canlı Yayında API Anahtarlarını Almak İçin)
+if "GOOGLE_API_KEY" in st.secrets:
+    os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+if "GROQ_API_KEY" in st.secrets:
+    os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
+
 # Custom CSS for Premium Look
 st.markdown("""
 <style>
