@@ -64,11 +64,11 @@ class PharmaGuardAgents:
         return "\n".join([doc.page_content for doc in docs])
 
     def master_orchestrator(self, user_input, image_data=None):
-        """Tüm süreci yöneten ana beyin."""
+        """Tüm süreci yöneten ana beyin. Kota hatası durumunda yedek modele geçer."""
         
         system_prompt = """
         ### ROLE: PHARMA-GUARD MASTER ORCHESTRATOR (PG-MO) ###
-        Sen, Gemini 2.0 tabanlı, multimodal yeteneklere sahip ve çoklu ajan ekosistemini yöneten baş mimarsın.
+        Sen, Gemini tabanlı, multimodal yeteneklere sahip ve çoklu ajan ekosistemini yöneten baş mimarsın.
         Görevin; görsel veya metinsel girişi alınan bir ilacı, sıfır hata toleransı ile analiz etmektir.
         
         OPERASYONEL KURALLAR:
@@ -80,20 +80,35 @@ class PharmaGuardAgents:
         Tüm alt ajanlardan gelen veriyi birleştir ve Türkçe, profesyonel bir rapor hazırla.
         """
         
-        # Workflow simulation:
-        # 1. Vision (if image)
-        # 2. RAG Search
-        # 3. Safety Check
-        # 4. Report Synthesis
-        
-        # This function will be called by Streamlit to trigger the full chain
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"Analiz edilecek girdi: {user_input}")
         ]
+
+        # Retry ve Fallback Mantığı
+        models_to_try = [
+            self.gemini, # İlk deneme: Gemini 2.0 Flash
+            ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"), temperature=0) # Yedek: 1.5 Flash
+        ]
+
+        last_error = None
+        for model in models_to_try:
+            for attempt in range(3): # Her model için 3 deneme
+                try:
+                    response = model.invoke(messages)
+                    return response.content
+                except Exception as e:
+                    last_error = e
+                    if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                        import time
+                        time.sleep(2 * (attempt + 1)) # Üstel bekleme
+                        continue
+                    else:
+                        break # Diğer hatalarda döngüden çık
+            # Eğer buraya geldiyse bu model başarısız olmuştur, bir sonraki modele (yedek) geçilir.
+            print(f"Model {model.model} başarısız oldu, yedek modele geçiliyor...")
         
-        response = self.gemini.invoke(messages)
-        return response.content
+        raise Exception(f"Tüm modeller kota veya sistem hatası verdi. Son hata: {last_error}")
 
 def run_full_analysis(input_text, image_base64=None):
     agents = PharmaGuardAgents()
