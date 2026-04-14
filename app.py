@@ -1,10 +1,26 @@
-import streamlit as st
 import os
-import base64
+import sys
+
+# ── 1. ADIM: .env dosyasını yükle (yerel geliştirme için)
 from dotenv import load_dotenv
+load_dotenv()
+
+# ── 2. ADIM: Streamlit Secrets'tan anahtarları al (canlı yayın için)
+# Bu blok, diğer tüm importlardan ÖNCE çalışmalıdır.
+try:
+    import streamlit as st
+    for key in ["GOOGLE_API_KEY", "GROQ_API_KEY", "CHROMA_PATH", "CORPUS_PATH"]:
+        if key in st.secrets:
+            os.environ[key] = st.secrets[key]
+except Exception:
+    pass
+
+# ── 3. ADIM: Diğer importlar (anahtarlar artık os.environ'da hazır)
+import base64
+import time
+import streamlit as st
 from utils import setup_rag_database, generate_pdf_report
 from agents import run_full_analysis
-import time
 
 # Sayfa Konfigürasyonu
 st.set_page_config(
@@ -13,16 +29,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# Streamlit Secrets (Canlı Yayında API Anahtarlarını Almak İçin)
-try:
-    if "GOOGLE_API_KEY" in st.secrets:
-        os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
-    if "GROQ_API_KEY" in st.secrets:
-        os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
-except Exception:
-    # Yerelde secrets.toml yoksa hata vermemesi için sessizce geçiyoruz
-    pass
 
 # Custom CSS for Premium Look
 st.markdown("""
