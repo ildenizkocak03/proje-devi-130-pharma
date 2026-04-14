@@ -15,10 +15,14 @@ st.set_page_config(
 )
 
 # Streamlit Secrets (Canlı Yayında API Anahtarlarını Almak İçin)
-if "GOOGLE_API_KEY" in st.secrets:
-    os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
-if "GROQ_API_KEY" in st.secrets:
-    os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
+try:
+    if "GOOGLE_API_KEY" in st.secrets:
+        os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+    if "GROQ_API_KEY" in st.secrets:
+        os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
+except Exception:
+    # Yerelde secrets.toml yoksa hata vermemesi için sessizce geçiyoruz
+    pass
 
 # Custom CSS for Premium Look
 st.markdown("""
