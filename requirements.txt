@@ -1,0 +1,12 @@
+streamlit
+langchain
+langchain-google-genai
+langchain-groq
+chromadb
+pypdf
+fpdf2
+pillow
+python-dotenv
+google-generativeai
+sentence-transformers
+langchain-community
