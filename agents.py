@@ -5,6 +5,7 @@ from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from utils import get_retriever
 from langchain_community.tools import DuckDuckGoSearchRun
+from dotenv import load_dotenv
 
 load_dotenv()
 
