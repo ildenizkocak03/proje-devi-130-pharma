@@ -37,14 +37,25 @@ class PharmaGuardAgents:
         local_content = ""
         if retriever:
             docs = retriever.invoke(medicine_name)
-            local_content = "\n".join([doc.page_content for doc in docs])
+            # Yerel verinin gerçekten ilgili olup olmadığını kontrol et
+            # Basit bir anahtar kelime kontrolü: İlaç ismi dökümanda geçiyor mu?
+            relevant_docs = []
+            for doc in docs:
+                content_lower = doc.page_content.lower()
+                name_lower = medicine_name.lower().split()[0] # İlk kelimeyi (marka) baz al
+                if name_lower in content_lower:
+                    relevant_docs.append(doc.page_content)
+            
+            if relevant_docs:
+                local_content = "\n".join(relevant_docs)
         
         if len(local_content.strip()) > 100:
             return f"[KAYNAK: YEREL PROSPEKTÜS]\n{local_content}"
         
         # 2. İnternet Araması (Fallback)
-        print(f"Yerel veri bulunamadı, {medicine_name} için internet taraması başlatılıyor...")
-        search_query = f"{medicine_name} prospektüs kullanım talimatı resmi pdf"
+        print(f"Yerel veya uyumlu veri bulunamadı, {medicine_name} için internet taraması başlatılıyor...")
+        # Aramayı daha spesifik hale getirelim
+        search_query = f"{medicine_name} prospektüs kkt pdf resmi"
         try:
             web_content = self.search_tool.run(search_query)
             return f"[KAYNAK: RESMİ WEB VERİLERİ]\n{web_content}"
