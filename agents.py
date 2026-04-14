@@ -60,7 +60,7 @@ class PharmaGuardAgents:
         if not retriever:
             return "Prospektüs veritabanı boş veya bulunamadı."
         
-        docs = retriever.get_relevant_documents(medicine_name)
+        docs = retriever.invoke(medicine_name)
         return "\n".join([doc.page_content for doc in docs])
 
     def master_orchestrator(self, user_input, image_data=None):
