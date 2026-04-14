@@ -11,3 +11,4 @@ google-generativeai
 sentence-transformers
 langchain-community
 duckduckgo-search
+ddgs
