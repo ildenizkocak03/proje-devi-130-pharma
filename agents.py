@@ -122,19 +122,46 @@ class PharmaGuardAgents:
 def run_full_analysis(input_text, image_base64=None):
     agents = PharmaGuardAgents()
     
-    # 1. Vision Analysis (if image provided)
-    vision_results = {}
     if image_base64:
-        # Implementation of vision call...
-        pass
+        # Görsel varsa doğrudan Gemini Vision'a gönder, RAG embedding yapmadan
+        import base64
+        google_api_key = os.getenv("GOOGLE_API_KEY")
+        vision_model = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
+            google_api_key=google_api_key,
+            temperature=0
+        )
+        from langchain_core.messages import HumanMessage
+        message = HumanMessage(content=[
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
+            },
+            {
+                "type": "text",
+                "text": f"""Sen bir ilaç denetim uzmanısın. Bu ilaç kutusunu analiz et ve Türkçe profesyonel bir rapor hazırla:
+1. İlaç adı ve etken madde
+2. Dozaj (mg/ml)
+3. Kullanım alanları
+4. Kritik güvenlik uyarıları ve yan etkiler
+5. Genel değerlendirme
 
-    # 2. RAG Retrieval
-    prospectus_data = agents.rag_specialist(input_text)
-    
-    # 3. Final Synthesis via Gemini Orchestrator
-    # We pass the collected evidence to Gemini
-    final_report = agents.master_orchestrator(
-        f"Kullanıcı Girdisi: {input_text}\n\nProspektüs Verisi:\n{prospectus_data}"
-    )
-    
-    return final_report
+Ek kullanıcı notu: {input_text if input_text else 'Yok'}"""
+            }
+        ])
+        try:
+            response = vision_model.invoke([message])
+            content = response.content
+            if isinstance(content, list):
+                parts = [block['text'] if isinstance(block, dict) and 'text' in block else str(block) for block in content]
+                content = "\n".join(parts)
+            return str(content)
+        except Exception as e:
+            return f"Görsel analiz hatası: {e}"
+    else:
+        # Metin girdisi: RAG + Orchestrator
+        prospectus_data = agents.rag_specialist(input_text)
+        final_report = agents.master_orchestrator(
+            f"Kullanıcı Girdisi: {input_text}\n\nProspektüs Verisi:\n{prospectus_data}"
+        )
+        return final_report

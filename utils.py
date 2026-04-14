@@ -37,20 +37,24 @@ def setup_rag_database(corpus_path, chroma_path):
     """PDF'leri tarar ve ChromaDB vektör veritabanını oluşturur."""
     embeddings = get_embeddings()
     
-    documents = []
+    texts = []
+    metadatas = []
+    
     for file in os.listdir(corpus_path):
         if file.endswith(".pdf"):
             path = os.path.join(corpus_path, file)
             content = extract_text_from_pdf(path)
-            if content:
-                documents.append({"content": content, "metadata": {"source": file}})
+            if not content:
+                continue
+            # Büyük metni parçalara böl ve boş olanları filtrele
+            chunks = [c.strip() for c in content.split("\n\n") if c.strip() and len(c.strip()) > 20]
+            for chunk in chunks:
+                texts.append(chunk)
+                metadatas.append({"source": file})
     
-    if not documents:
+    if not texts:
         return None
 
-    texts = [doc["content"] for doc in documents]
-    metadatas = [doc["metadata"] for doc in documents]
-    
     vectorstore = Chroma.from_texts(
         texts=texts,
         embedding=embeddings,
