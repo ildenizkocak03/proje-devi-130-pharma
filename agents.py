@@ -4,7 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from utils import get_retriever
-from dotenv import load_dotenv
+from langchain_community.tools import DuckDuckGoSearchRun
 
 load_dotenv()
 
@@ -26,42 +26,29 @@ class PharmaGuardAgents:
             temperature=0
         )
         
-        # Fast Analysis & Synthesis: Groq Llama-3
-        self.groq_llama = ChatGroq(
-            model="llama3-70b-8192", 
-            groq_api_key=groq_api_key,
-            temperature=0
-        )
-        
-        # Vision Scanner: Groq LLaVA
-        self.groq_vision = ChatGroq(
-            model="llava-v1.5-7b-4096-preview", 
-            groq_api_key=groq_api_key,
-            temperature=0
-        )
-
-    def vision_scanner(self, image_bytes):
-        """İlaç kutusunu tarar ve metadata çıkarır."""
-        # Note: Groq LLaVA takes base64 images usually via the vision API
-        # For simplicity in this structure, we'll use a descriptive prompt
-        prompt = """
-        Analyze this medicine package image. 
-        Extract: Brand Name, Active Ingredient, Dosage (mg/ml), Form (Tablet/Syrup), and Barcode if visible.
-        Return ONLY a JSON object.
-        """
-        # This is a placeholder logic for multimodal input via LangChain
-        # If image_bytes is provided, it should be sent as part of message content
-        # For this implementation, we will assume the logic will be handled in app.py or here
-        return {"Brand": "Unknown", "Dosage": "Unknown"} # Placeholder
+        # Search Tool: DuckDuckGo
+        self.search_tool = DuckDuckGoSearchRun()
 
     def rag_specialist(self, medicine_name):
-        """Prospektüs veritabanında arama yapar."""
+        """Prospektüs veritabanında arama yapar, yoksa internetten resmi veriyi çeker."""
+        # 1. Yerel RAG Araması
         retriever = get_retriever()
-        if not retriever:
-            return "Prospektüs veritabanı boş veya bulunamadı."
+        local_content = ""
+        if retriever:
+            docs = retriever.invoke(medicine_name)
+            local_content = "\n".join([doc.page_content for doc in docs])
         
-        docs = retriever.invoke(medicine_name)
-        return "\n".join([doc.page_content for doc in docs])
+        if len(local_content.strip()) > 100:
+            return f"[KAYNAK: YEREL PROSPEKTÜS]\n{local_content}"
+        
+        # 2. İnternet Araması (Fallback)
+        print(f"Yerel veri bulunamadı, {medicine_name} için internet taraması başlatılıyor...")
+        search_query = f"{medicine_name} prospektüs kullanım talimatı resmi pdf"
+        try:
+            web_content = self.search_tool.run(search_query)
+            return f"[KAYNAK: RESMİ WEB VERİLERİ]\n{web_content}"
+        except Exception as e:
+            return f"Yerel veri yok ve internet araması başarısız oldu: {e}"
 
     def master_orchestrator(self, user_input, image_data=None):
         """Tüm süreci yöneten ana beyin. Kota hatası durumunda yedek modele geçer."""
