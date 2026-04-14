@@ -121,43 +121,53 @@ class PharmaGuardAgents:
 
 def run_full_analysis(input_text, image_base64=None):
     agents = PharmaGuardAgents()
+    google_api_key = os.getenv("GOOGLE_API_KEY")
     
     if image_base64:
-        # Görsel varsa doğrudan Gemini Vision'a gönder, RAG embedding yapmadan
-        import base64
-        google_api_key = os.getenv("GOOGLE_API_KEY")
-        vision_model = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
-            google_api_key=google_api_key,
-            temperature=0
-        )
-        from langchain_core.messages import HumanMessage
-        message = HumanMessage(content=[
-            {
-                "type": "image_url",
-                "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
-            },
-            {
-                "type": "text",
-                "text": f"""Sen bir ilaç denetim uzmanısın. Bu ilaç kutusunu analiz et ve Türkçe profesyonel bir rapor hazırla:
+        # Görsel varsa doğrudan Gemini Vision'a gönder (RAG bypass)
+        from langchain_core.messages import HumanMessage as HM
+        
+        vision_prompt = f"""Sen bir ilaç denetim uzmanısın. Bu ilaç kutusunu analiz et ve Türkçe profesyonel bir rapor hazırla:
 1. İlaç adı ve etken madde
-2. Dozaj (mg/ml)
+2. Dozaj (mg/ml)  
 3. Kullanım alanları
 4. Kritik güvenlik uyarıları ve yan etkiler
 5. Genel değerlendirme
 
 Ek kullanıcı notu: {input_text if input_text else 'Yok'}"""
-            }
+
+        message = HM(content=[
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}},
+            {"type": "text", "text": vision_prompt}
         ])
-        try:
-            response = vision_model.invoke([message])
-            content = response.content
-            if isinstance(content, list):
-                parts = [block['text'] if isinstance(block, dict) and 'text' in block else str(block) for block in content]
-                content = "\n".join(parts)
-            return str(content)
-        except Exception as e:
-            return f"Görsel analiz hatası: {e}"
+
+        # Yedek model listesi
+        vision_models = [
+            ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=google_api_key, temperature=0),
+            ChatGoogleGenerativeAI(model="gemini-flash-latest", google_api_key=google_api_key, temperature=0),
+            ChatGoogleGenerativeAI(model="gemini-pro-latest", google_api_key=google_api_key, temperature=0),
+        ]
+
+        last_error = None
+        for vision_model in vision_models:
+            for attempt in range(3):
+                try:
+                    response = vision_model.invoke([message])
+                    content = response.content
+                    if isinstance(content, list):
+                        parts = [block['text'] if isinstance(block, dict) and 'text' in block else str(block) for block in content]
+                        content = "\n".join(parts)
+                    return str(content)
+                except Exception as e:
+                    last_error = e
+                    if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                        import time
+                        time.sleep(2 * (attempt + 1))
+                        continue
+                    else:
+                        break
+        return f"Görsel analiz başarısız oldu. Son hata: {last_error}"
+
     else:
         # Metin girdisi: RAG + Orchestrator
         prospectus_data = agents.rag_specialist(input_text)
