@@ -74,27 +74,35 @@ def get_retriever():
     return vectorstore.as_retriever(search_kwargs={"k": 3})
 
 class PharmaReport(FPDF):
+    def __init__(self):
+        super().__init__()
+        # Load custom fonts for UTF-8 support
+        self.add_font('Roboto', '', 'data/Roboto-Regular.ttf')
+        self.add_font('Roboto', 'B', 'data/Roboto-Bold.ttf')
+
     def header(self):
-        self.set_font('Arial', 'B', 15)
-        self.cell(0, 10, 'PHARMA-GUARD AI ANALIZ RAPORU', 0, 1, 'C')
+        self.set_font('Roboto', 'B', 15)
+        # Using new_x and new_y for fpdf2 to avoid warning
+        self.cell(0, 10, 'PHARMA-GUARD AI ANALIZ RAPORU', new_x="LMARGIN", new_y="NEXT", align='C')
         self.ln(10)
 
     def footer(self):
         self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Sayfa {self.page_no()}', 0, 0, 'C')
+        self.set_font('Roboto', '', 8)
+        # Using simple cell format for footer page numbers
+        self.cell(0, 10, f'Sayfa {self.page_no()}', align='C')
 
 def generate_pdf_report(data, output_path):
     """Analiz verilerini profesyonel bir PDF raporuna dönüştürür."""
     pdf = PharmaReport()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("Roboto", size=12)
 
     for section, content in data.items():
-        pdf.set_font("Arial", 'B', 12)
-        pdf.cell(0, 10, section, 0, 1, 'L')
-        pdf.set_font("Arial", '', 11)
-        pdf.multi_cell(0, 10, content)
+        pdf.set_font("Roboto", 'B', 12)
+        pdf.cell(0, 10, str(section), new_x="LMARGIN", new_y="NEXT", align='L')
+        pdf.set_font("Roboto", '', 11)
+        pdf.multi_cell(0, 10, str(content))
         pdf.ln(5)
 
     pdf.output(output_path)
